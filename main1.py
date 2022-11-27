@@ -9,7 +9,7 @@ import csv
 import re
 import os
 from prettytable import PrettyTable
-start = input("Выбор команд: Вакансии или Статистика: ")
+start = input("Выбор команд: ")
 file = input("Введите название файла: ")
 resultList = []
 names = []
@@ -517,7 +517,7 @@ class InputConnect:
 conclusion = DataSet()
 connect = InputConnect()
 if(start == "Статистика"):
-    profession = input("профессиииии: ")
+    profession = input("Введите название професии: ")
     conclusion.printVacancy()
 elif(start == "Вакансии"):
     filtration = input("Введите параметр фильтрации: ").split(": ")
