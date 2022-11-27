@@ -517,7 +517,7 @@ class InputConnect:
 conclusion = DataSet()
 connect = InputConnect()
 if(start == "Статистика"):
-    profession = input("профессии: ")
+    profession = input("профессиииии: ")
     conclusion.printVacancy()
 elif(start == "Вакансии"):
     filtration = input("Введите параметр фильтрации: ").split(": ")
