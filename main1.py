@@ -9,17 +9,14 @@ import csv
 import re
 import os
 from prettytable import PrettyTable
+import doctest
 
 """
 Globals:
-    start: Узнает какую информацию хочет получить пользователь
-    file: Получает название файла
     resultList: Массив, который заполнится вакансиями
     names: Массив, который заполнится названиями полей
 """
 
-start = input("Вакансии или Статистика: ")
-file = input("Введите название файла: ")
 resultList = []
 names = []
 
@@ -118,6 +115,15 @@ class Vacancy:
             salary(str): Все о зарплате
             area_name(str): Название региона для вакансии
             published_at(str): Дата публикации вакансии
+
+        >>> type(Vacancy("name", "description", "key_skills", "experience_id", "premium", "employer_name", "salary", "Москва", "published_at")).__name__
+        'Vacancy'
+        >>> Vacancy("name", "description", "key_skills", "experience_id", "premium", "employer_name", "salary", "Москва", "published_at").area_name
+        ['Москва']
+        >>> Vacancy("Яндекс", "description", "key_skills", "experience_id", "premium", "employer_name", "salary", "Москва", "published_at").name
+        ['Яндекс']
+        >>> Vacancy("name", "description", "key_skills", "experience_id", "premium", "employer_name", "salary", "Москва", "2007-12-03T17:34:36+0300").published_at
+        ['2007-12-03T17:34:36+0300']
         """
         self.name = [name]
         self.description = [description]
@@ -150,6 +156,14 @@ class Salary:
             salary_to(str): Верхняя граница вилки оклада
             salary_gross(str): Представлена ли зарплата с учетом налогов?
             salary_currency(str): Валюта оклада
+        >>> type(Salary(100, 200,"True", "RUR")).__name__
+        'Salary'
+        >>> Salary(100, 200,"True", "RUR").salary_from
+        [100]
+        >>> Salary(100, 200,"True", "RUR").salary_to
+        [200]
+        >>> Salary(100, 200,"True", "RUR").salary
+        '100 - 200 (Рубли) (С вычетом налогов)'
         """
 
         self.salary_from = [salary_from]
@@ -326,16 +340,19 @@ class Report:
         pdf_template = pdf_template.replace("$way", os.path.abspath(os.curdir)+"\\" )
         config = pdfkit.configuration(wkhtmltopdf=r'D:\wkhtmltopdf\bin\wkhtmltopdf.exe')
         options = {'enable-local-file-access': None}
-        table = self.generate_table()
+        table = self.generate_table(profession)
         pdf_template = pdf_template.replace("$table;", table)
         pdfkit.from_string(pdf_template, 'report.pdf', configuration=config, options=options)
 
-    def generate_table(self):
+    def generate_table(self, profession):
         """
         Создает таблицу при помощи HTML кода
 
         Returns:
             str: таблица со статистикой HTML кодом
+
+        >>> Report().generate_table("Программист")
+        "<table class='table'><tr><th>Год</th><th>Средняя зарплата</th><th>Средняя зарплата - Программист</th><th>Количество вакансий</th><th>Количество вакансий - Программист</th></tr></tr></table><h1>Статистика по городам</h1><table class='table1'><tr><th>Город</th><th>Уровень зарплат</th></tr></table><table class='table2'><tr><th>Город</th><th>Уровень зарплат</th></tr></table>"
         """
 
         table = "<table class='table'><tr><th>Год</th><th>Средняя зарплата</th><th>Средняя зарплата - "
@@ -373,7 +390,7 @@ class DataSet:
         file_name(str): Название файла
         vacancies_objects(list): Массив, содержащий все данные по каждой из вакансий
     """
-    def __init__(self):
+    def __init__(self, file = "None"):
         """Инизиализирует объект DataSet"""
 
         self.report = Report()
@@ -462,6 +479,11 @@ class DataSet:
 
         Returns:
             str: строка без HTML тегов
+        >>> DataSet.clearStr("<p>yes</p>")
+        'yes'
+        >>> DataSet.clearStr("<body><p>word</p></body>")
+        'word'
+
         """
 
         return ' '.join(re.sub(r"<[^>]+>", '', strValue).split())
@@ -573,7 +595,7 @@ class InputConnect:
 
         self.data = DataSet()
 
-    def filter_parametr(self, row):
+    def filter_parametr(self, row, filtration):
         """
         Фильтрует таблицу по вводимым значениям
 
@@ -582,7 +604,12 @@ class InputConnect:
 
         Returns:
             list: отфильтрованная вакансия
+
+        >>> filtration = ["Название", "Программист"]
+        >>> InputConnect().filter_parametr(Vacancy("Аналитик", "description", "key_skills", "experience_id", "premium", "employer_name", "salary", "Москва", "2007-12-03T17:34:36+0300"), filtration)
+        {}
         """
+
         count = 0
         if(filtration[0] == "Идентификатор валюты оклада"):
             if (str(row.salary.salary).split("(")[1].split(")")[0] == filtration[1]):
@@ -647,7 +674,7 @@ class InputConnect:
 
         for vacancy in data_vacancies:
             counter += 1
-            vacancy = self.filter_parametr(vacancy)
+            vacancy = self.filter_parametr(vacancy, filtration)
             val = [str(counter)]
             if (type(vacancy) != dict):
                 for item in vacancy.elements:
@@ -693,16 +720,20 @@ class InputConnect:
 
 """Определяет, какую информацию хочет получить пользователь (статистическую или таблицу с вакансиями) и вызывает нужные функции"""
 
-conclusion = DataSet()
-connect = InputConnect()
-if(start == "Статистика"):
-    profession = input("Введите название профессии: ")
-    conclusion.printVacancy()
+if __name__ == "__main__":
+    doctest.testmod()
+    start = input("Вакансии или Статистика: ")
+    file = input("Введите название файла: ")
+    conclusion = DataSet()
+    connect = InputConnect()
+    if(start == "Статистика"):
+        profession = input("Введите название профессии: ")
+        conclusion.printVacancy()
 
-elif(start == "Вакансии"):
-    filtration = input("Введите параметр фильтрации: ").split(": ")
-    sortirovka = input("Введите параметр сортировки: ")
-    sortOrder = input("Обратный порядок сортировки (Да / Нет): ")
-    lines = input("Введите диапазон вывода: ").split()
-    column = input("Введите требуемые столбцы: ").split(", ")
-    connect.PrintFunction()
+    elif(start == "Вакансии"):
+        filtration = input("Введите параметр фильтрации: ").split(": ")
+        sortirovka = input("Введите параметр сортировки: ")
+        sortOrder = input("Обратный порядок сортировки (Да / Нет): ")
+        lines = input("Введите диапазон вывода: ").split()
+        column = input("Введите требуемые столбцы: ").split(", ")
+        connect.PrintFunction()
