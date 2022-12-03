@@ -9,10 +9,28 @@ import csv
 import re
 import os
 from prettytable import PrettyTable
+
+"""
+Globals:
+    start: Узнает какую информацию хочет получить пользователь
+    file: Получает название файла
+    resultList: Массив, который заполнится вакансиями
+    names: Массив, который заполнится названиями полей
+"""
+
 start = input("Вакансии или Статистика: ")
 file = input("Введите название файла: ")
 resultList = []
 names = []
+
+"""
+Globals dictionary:
+    translateToRus: Перевод шапки файла на русский язык
+    experience: Перевод значений в графе опыта на русский язык
+    filterToNames: Обратный перевод шапки файла на английский язык
+    currency: Перевод сокращений от названий валют на русский язык
+    currency_to_rub: Перевод всех валют в рубли
+"""
 
 translateToRus = {
 "name":"Название",
@@ -71,7 +89,36 @@ currency_to_rub = {
 }
 
 class Vacancy:
+    """Класс для представления вакансий.
+
+     Attributes:
+        name(list): Название вакансии
+        description(list): Описание вакансии
+        key_skills(list): Навыки необходимые для работы
+        experience_id(list): Необходимый опыт
+        premium(list): Является ли ланная вакансия премиум?
+        employer_name(list): Название компании
+        salary(class): Все о зарплате
+        area_name(list): Название региона для вакансии
+        published_at(list): Дата публикации вакансии
+        elements(list): Массив всех атрибутов
+     """
+
     def __init__(self, name, description, key_skills, experience_id, premium, employer_name, salary, area_name, published_at):
+        """
+        Инициализирует объект Vacancy, выполняет конвертацию для целочисленных полей.
+
+        Args:
+            name(str): Название вакансии
+            description(str):  Описание вакансии
+            key_skills(str): Навыки необходимые для работы
+            experience_id(str): Необходимый опыт
+            premium(str): Является ли ланная вакансия премиум?
+            employer_name(str): Название компании
+            salary(str): Все о зарплате
+            area_name(str): Название региона для вакансии
+            published_at(str): Дата публикации вакансии
+        """
         self.name = [name]
         self.description = [description]
         self.key_skills = key_skills
@@ -84,7 +131,27 @@ class Vacancy:
         self.elements=[name, description, key_skills, experience_id, premium, employer_name, salary, area_name, published_at]
 
 class Salary:
+    """Класс для представления зарплаты.
+
+     Attributes:
+        salary_from(list): Нижняя граница вилки оклада
+        salary_to(list): Верхняя граница вилки оклада
+        salary_gross(list): Представлена ли зарплата с учетом налогов?
+        salary_currency(list): Валюта оклада
+        salary(str): Строка со всеми данными зарплаты
+     """
+
     def __init__(self, salary_from, salary_to, salary_gross, salary_currency):
+        """
+        Инициализирует объект Salary, выполняет конвертацию для целочисленных полей.
+
+        Args:
+            salary_from(str): Нижняя граница вилки оклада
+            salary_to(str): Верхняя граница вилки оклада
+            salary_gross(str): Представлена ли зарплата с учетом налогов?
+            salary_currency(str): Валюта оклада
+        """
+
         self.salary_from = [salary_from]
         self.salary_to = [salary_to]
         self.salary_gross = [salary_gross]
@@ -93,7 +160,19 @@ class Salary:
 
 
 class Report:
+    """Класс в котором создается картинка, Excel и PDF файлы со статистикой csv файла
+
+    Attributes:
+        salaryYear(dictionary): Содержит среднюю зарплату для каждого года
+        numberYear(dictionary): Содержит количество вакансий для каждого года
+        salaryProfessionalYear(dictionary): Содержит среднюю зарплату для каждого года определенной профессии
+        numberProfessionalYear(dictionary): Содержит количество вакансий для каждого года определенной профессии
+        salaryCity(dictionary): Содержит среднюю зарплату для каждого города
+        vacancyCity(dictionary): Содержит количество вакансий для каждого города
+    """
     def __init__(self):
+        """Инизиализирует объект Report"""
+
         self.salaryYear = {}
         self.numberYear = {}
         self.salaryProfessionalYear = {}
@@ -102,6 +181,8 @@ class Report:
         self.vacancyCity = {}
 
     def generate_image(self):
+        """Создает картику со статистикой csv файла при помощи библиотеки matplotlib"""
+
         plt.rcParams.update({'font.size': 8})
 
         x = np.arange(len(list(self.salaryYear)))
@@ -143,6 +224,8 @@ class Report:
         plt.savefig('graph.png', dpi = 200, bbox_inches='tight')
 
     def generate_excel(self):
+        """Создает Excel файл со статистикой csv файла при помощи класса Workbook из библиотеки openpyxl"""
+
         workbook = Workbook()
         sheet = workbook.active
         sheet.title = "Статистика по годам"
@@ -206,12 +289,26 @@ class Report:
         workbook.save(filename="report.xlsx")
 
     def makeBorder(self, worksheet):
+        """
+        Создает границы в Excel файле
+
+        Args:
+            worksheet(Worksheet): Активная вкладка Excel файла
+        """
+
         thin = Side(border_style="thin", color="000000")
         for row in worksheet:
             for cell in row:
                 cell.border = Border(top=thin, left=thin, right=thin, bottom=thin)
 
     def columnWidth(self, worksheet):
+        """
+        Задает ширину столбцов в Excel файле
+
+        Args:
+            worksheet(Worksheet): Активная вкладка Excel файла
+        """
+
         dims = {}
         for row in worksheet.rows:
             for cell in row:
@@ -221,6 +318,8 @@ class Report:
             worksheet.column_dimensions[col].width = value
 
     def generate_pdf(self):
+        """Создает PDF файл со статистикой csv файла при помощи библиотеки pdfkit"""
+
         env = Environment(loader=FileSystemLoader('.'))
         template = env.get_template("1.html")
         pdf_template = template.render({'name': profession})
@@ -232,6 +331,13 @@ class Report:
         pdfkit.from_string(pdf_template, 'report.pdf', configuration=config, options=options)
 
     def generate_table(self):
+        """
+        Создает таблицу при помощи HTML кода
+
+        Returns:
+            str: таблица со статистикой HTML кодом
+        """
+
         table = "<table class='table'><tr><th>Год</th><th>Средняя зарплата</th><th>Средняя зарплата - "
         table += profession + "</th><th>Количество вакансий</th><th>Количество вакансий - " + profession + "</th></tr>"
         for i in range(len(list(self.salaryYear))):
@@ -260,12 +366,31 @@ class Report:
         return table
 
 class DataSet:
+    """Класс, который считавает CSV файл, заполняет классы Salary и Vacancy и выводит статистические данные
+
+    Attributes:
+        report(class): класс Report
+        file_name(str): Название файла
+        vacancies_objects(list): Массив, содержащий все данные по каждой из вакансий
+    """
     def __init__(self):
+        """Инизиализирует объект DataSet"""
+
         self.report = Report()
         self.file_name = file
         self.vacancies_objects = []
 
     def сsv_reader(self, file_name):
+        """
+        Считывает данные с csv файла и заполняет ими resultList и names
+
+        Args:
+            file_name(str): название файла
+
+        Returns:
+            list: данные с csv файла
+        """
+
         global names
         with open(file_name, encoding="utf-8-sig") as File:
             readerFile = csv.reader(File, delimiter=',',
@@ -278,6 +403,17 @@ class DataSet:
         return resultList, names
 
     def csv_filer(self, reader, list_naming):
+        """
+        Заполняет классы Vacancy и Salary, а так же переводит True и False на русский язык
+
+        Args:
+            reader(list): данные со всеми вакансиями
+            list_naming(list): названия полей из шапки файла
+
+        Returns:
+            list: данные со всеми вакансиями
+        """
+
         for item in reader:
             argument = ["", "", "", "", "", "", "", "", ""]
             namesIndex = ["name", "description", "key_skills", "experience_id", "premium", "employer_name", "salary", "area_name", "published_at"]
@@ -318,9 +454,21 @@ class DataSet:
         return self.vacancies_objects
 
     def clearStr(strValue):
+        """
+        Чистит строку от HTML тегов
+
+        Args:
+            strValue(str): строка, которую нужно преобразовать
+
+        Returns:
+            str: строка без HTML тегов
+        """
+
         return ' '.join(re.sub(r"<[^>]+>", '', strValue).split())
 
     def makeDict(self):
+        """Заполняет класс Report и выводит статистические данные"""
+
         dicrionaries = {
             "salaryYear": {},
             "NumberYear": {},
@@ -401,6 +549,8 @@ class DataSet:
         print("Доля вакансий по городам (в порядке убывания):", elem)
 
     def printVacancy(self):
+        """Вызывает все необходимые функции для статистических данных"""
+
         resultList, names = self.сsv_reader(file)
         if len(names) == 0 or len(resultList) == 0:
             print("Нет данных")
@@ -412,10 +562,27 @@ class DataSet:
             self.report.generate_pdf()
 
 class InputConnect:
+    """
+    Заполняет, фильтрует, сортирует и отрисовывает таблицу с вакансиями
+
+    Attributes:
+        data(class): Класс DataSet
+    """
     def __init__(self):
+        """Инизиализирует объект InputConnect"""
+
         self.data = DataSet()
 
     def filter_parametr(self, row):
+        """
+        Фильтрует таблицу по вводимым значениям
+
+        Args:
+            row(list): вакансия, которую нужно преобразовать
+
+        Returns:
+            list: отфильтрованная вакансия
+        """
         count = 0
         if(filtration[0] == "Идентификатор валюты оклада"):
             if (str(row.salary.salary).split("(")[1].split(")")[0] == filtration[1]):
@@ -442,6 +609,14 @@ class InputConnect:
 
 
     def print_vacancies(self, data_vacancies, dic_naming):
+        """
+        Сортирует таблицу по вводимым значениям и отрисовывает ее
+
+        Args:
+            data_vacancies(list): Массив, со всеми вакансиями
+            dic_naming(dict): Названия полей
+        """
+
         counter = 0
         mytable = PrettyTable()
         mytable._max_width = {"Название": 20, "Описание": 20, "Навыки": 20, "Опыт работы": 20, "Премиум-вакансия": 20,
@@ -496,6 +671,8 @@ class InputConnect:
 
 
     def PrintFunction(self):
+        """Вызывает все необходимые функции для отрисовки таблицы"""
+
         if(os.stat(file).st_size == 0):
             print("Пустой файл")
         elif (len(filtration) == 1 and len(filtration[0]) > 0):
@@ -513,6 +690,8 @@ class InputConnect:
             else:
                 self.print_vacancies(self.data.csv_filer(resultList, names), translateToRus)
 
+
+"""Определяет, какую информацию хочет получить пользователь (статистическую или таблицу с вакансиями) и вызывает нужные функции"""
 
 conclusion = DataSet()
 connect = InputConnect()
