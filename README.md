@@ -1,10 +1,3 @@
 # Nosinovskiy
-![image](https://user-images.githubusercontent.com/72023861/205448411-99fc476a-6c9d-406c-b8c5-e05c09745118.png)
-![image](https://user-images.githubusercontent.com/72023861/205448507-8e50cb0d-96f8-4baf-a4de-c7359b8e3836.png)
-![image](https://user-images.githubusercontent.com/72023861/205448528-ab913091-8f0b-4f86-af96-7939ffc825c6.png)
-![image](https://user-images.githubusercontent.com/72023861/205448535-b617f765-e69d-4042-97c5-b1c33240c4cd.png)
-![image](https://user-images.githubusercontent.com/72023861/205448560-f08c8394-b172-4143-a0aa-bf0827a0319f.png)
-![image](https://user-images.githubusercontent.com/72023861/205448579-4cdc85bf-3e8b-460c-9a87-77ef08fce18e.png)
-![image](https://user-images.githubusercontent.com/72023861/205448593-e315e9f8-04d3-429f-99e2-d45ceda99a68.png)
 ![image](https://user-images.githubusercontent.com/72023861/205448612-4e1ef424-37f9-4810-97df-5c17c7a945cd.png)
 ![image](https://user-images.githubusercontent.com/72023861/205448633-ddbffb9e-9f47-4302-9ce3-af30ed7f7971.png)
