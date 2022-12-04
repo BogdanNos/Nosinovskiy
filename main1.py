@@ -10,6 +10,8 @@ import re
 import os
 from prettytable import PrettyTable
 import doctest
+from datetime import datetime
+
 
 """
 Globals:
@@ -595,6 +597,23 @@ class InputConnect:
 
         self.data = DataSet()
 
+    def formatDateTime1(self, time):
+        return time.split("T")[0].split("-")[2] + "." + time.split("T")[0].split("-")[1] + "." + time.split("T")[0].split("-")[0]
+
+    def formatDateTime2(self, time):
+        value = datetime.strptime(time.replace("+", ".").replace("T", " "), '%Y-%m-%d %H:%M:%S.%f')
+        return ("0" + str(value.day))[-2:] + "." + str(value.month) + "." + str(value.year)
+
+    def formatDateTime3(self, time):
+        value = [time.split("T")[0].split("-")[0], time.split("T")[0].split("-")[1], time.split("T")[0].split("-")[2]]
+        day = datetime(int(value[0]), int(value[1]), int(value[2]), 0, 0, 0)
+        return day.strftime('%d.%m.%Y')
+
+    def formatDateTime4(self, time):
+        value = [time.split("T")[0].split("-")[2], time.split("T")[0].split("-")[1], time.split("T")[0].split("-")[0]]
+        return ".".join(value)
+
+
     def filter_parametr(self, row, filtration):
         """
         Фильтрует таблицу по вводимым значениям
@@ -615,10 +634,10 @@ class InputConnect:
             if (str(row.salary.salary).split("(")[1].split(")")[0] == filtration[1]):
                 return row
         elif(filtration[0] == "Оклад"):
-            if (int(float(row.salary.salary_from)) <= int(filtration[1]) <= int(float(row.salary.salary_to))):
+            if (int(float(row.salary.salary_from[0])) <= int(filtration[1]) <= int(float(row.salary.salary_to[0]))):
                 return row
         elif (filtration[0] == "Дата публикации вакансии"):
-            if(row.published_at.split("T")[0].split("-")[2] + "." + row.published_at.split("T")[0].split("-")[1] + "." + row.published_at.split("T")[0].split("-")[0] == filtration[1]):
+            if(self.formatDateTime1(row.published_at[0]) == filtration[1]):
                 return row
 
         elif(filtration[0] == "Навыки"):
