@@ -11,6 +11,7 @@ from prettytable import PrettyTable
 import time
 from datetime import datetime
 import os, glob
+import concurrent.futures
 from multiprocessing import Pool
 
 translateToRus = {
@@ -771,6 +772,10 @@ def get_answer(result):
         salaryProfessionalYear[items[0]] = items[1]
         items = list(year["NumberProfessionalYear"].items())[0]
         NumberProfessionalYear[items[0]] = items[1]
+    salaryYear = dict(sorted(salaryYear.items(), key=lambda x: x[0]))
+    NumberYear = dict(sorted(NumberYear.items(), key=lambda x: x[0]))
+    salaryProfessionalYear = dict(sorted(salaryProfessionalYear.items(), key=lambda x: x[0]))
+    NumberProfessionalYear = dict(sorted(NumberProfessionalYear.items(), key=lambda x: x[0]))
     dicrionaries = {
         "salaryYear": salaryYear,  # {2007: [40, 50], 2008:[123, 1231]}
         "NumberYear": NumberYear,  # {2007: 123, 2008:132}
@@ -781,12 +786,19 @@ def get_answer(result):
     }
     return dicrionaries
 
+def get_futures(profession, allFiles):
+    conclusion = DataSet(profession)
+    vacancies_list = conclusion.сsv_reader(allFiles)
+    return conclusion.makeDict(vacancies_list)
 
 def pool_handler(allFiles, profession):
     conclusion = DataSet(profession)
-    p = Pool(11)
-    vacancies_list = p.map(conclusion.сsv_reader, allFiles)
-    result = p.map(conclusion.makeDict, vacancies_list)
+    result = []
+    with concurrent.futures.ProcessPoolExecutor(max_workers=11) as executor:
+        futures = {executor.submit(get_futures, profession, file): file for file in allFiles}
+        for fut in concurrent.futures.as_completed(futures):
+            result.append(fut.result())
+
     conclusion.print_dict(get_answer(result))
     conclusion.report.generate_image()
     conclusion.report.generate_excel()
@@ -797,9 +809,8 @@ if(__name__ == "__main__"):
     connect = InputConnect()
     if (start == "Статистика"):
         profession = input("Введите название профессии: ")
-        path = 'allCSV/'
+        path = input("Введите название папки: ") + '/'
         allFiles = []
-
         for filename in glob.glob(os.path.join(path, '*.csv')):
             allFiles.append(filename)
         clock = time.time()
