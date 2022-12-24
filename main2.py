@@ -59,19 +59,6 @@ currency = {
     "USD": "Доллары",
     "UZS": "Узбекский сум"
 }
-currency_to_rub = {
-    "AZN": 35.68,
-    "BYR": 23.91,
-    "EUR": 59.90,
-    "GEL": 21.74,
-    "KGS": 0.76,
-    "KZT": 0.13,
-    "RUR": 1,
-    "UAH": 1.64,
-    "USD": 60.66,
-    "UZS": 0.0055,
-    "not": 1
-}
 
 class Vacancy:
     """Класс для представления вакансий.
@@ -133,12 +120,12 @@ class Salary:
         salary_to(list): Верхняя граница вилки оклада
         salary_gross(list): Представлена ли зарплата с учетом налогов?
         salary_currency(list): Валюта оклада
-        salary(str): Строка со всеми данными зарплаты
+        salary(float): средний оклад вакансии 
      """
 
     def __init__(self, salary_from, salary_to, salary_gross, salary_currency):
         """
-        Инициализирует объект Salary, выполняет конвертацию для целочисленных полей.
+        Инициализирует объект Salary, выполняет конвертацию для целочисленных полей, проверяет наличие нужных полей.
 
         Args:
             salary_from(str): Нижняя граница вилки оклада
@@ -151,7 +138,7 @@ class Salary:
         [100]
         >>> Salary(100, 200,"True", "RUR").salary_to
         [200]
-        >>> Salary(100, 200,"True", "RUR").salary
+        >>> Salary(0, 400,"True", "RUR").salary
         '100 - 200 (Рубли) (С вычетом налогов)'
         """
         if(salary_from == '' and salary_to == ''):
@@ -211,11 +198,9 @@ class DataSet:
         Заполняет классы Vacancy и Salary, а так же переводит True и False на русский язык
 
         Args:
-            reader(list): данные со всеми вакансиями
+            item(list): одна вакансия
             list_naming(list): названия полей из шапки файла
 
-        Returns:
-            list: данные со всеми вакансиями
         """
 
         argument = ["", "", "", "", "", "", "", "", ""]
@@ -273,6 +258,10 @@ class DataSet:
         return ' '.join(re.sub(r"<[^>]+>", '', strValue).split())
 
     def currency_to_CSV(self):
+        """
+        Берет данные с ЦБ.РФ и записывает их в CSV файл с переодичностью в один месяц для волют встречающихся более 5000 раз
+        """
+
         currencyID = ["R01235", "R01239", "R01720", "R01335", "R01090"]
         currency = {
             "R01235": [],
@@ -307,11 +296,28 @@ class DataSet:
         df.to_csv('out.csv', index=False)
 
     def formatDateTime(self, time):
+        """
+        Преобразует строку даты публикации вакансии
+
+        Args:
+            time(str): строка, которую нужно преобразовать
+
+        Returns:
+            str: строка времени в нужном формате
+
+        """
         value = [time.split("T")[0].split("-")[0], time.split("T")[0].split("-")[1], time.split("T")[0].split("-")[2]]
         day = datetime(int(value[0]), int(value[1]), int(value[2]), 0, 0, 0)
         return day.strftime('%Y-%m')
 
     def make_new_CSV(self, vacancies_objects):
+        """
+        Создает новый CSV файл с новой колонкой salary
+
+        Args:
+            vacancies_objects(list): массив со всеми вакансиями
+
+        """
         currency = pd.read_csv('out.csv')
         name = []
         salary = []
@@ -337,7 +343,12 @@ class DataSet:
         
 
     def makeAndPrintDict(self, vacancies_objects):
-        """Заполняет класс Report и выводит статистические данные"""
+        """Заполняет класс Report и выводит статистические данные
+
+        Args:
+            vacancies_objects(list): массив со всеми вакансиями
+        """
+
         dict_currency = {}
         for vacancyByYear in vacancies_objects:
             for vacancy in vacancyByYear:
@@ -352,6 +363,16 @@ class DataSet:
         print("Частотность валют:", elem)
 
 def pool_handler(allFiles, profession):
+    """Заполняет класс Report и выводит статистические данные
+
+    Args:
+        allFiles(list): массив со всеми файлами
+        profession(str): нужная профессия
+
+    Returns:
+        list: массив со всеми вакансиями
+    """
+
     conclusion = DataSet(profession)
     result = []
     with concurrent.futures.ProcessPoolExecutor(max_workers=11) as executor:
