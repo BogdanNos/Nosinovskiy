@@ -154,16 +154,19 @@ class Salary:
         >>> Salary(100, 200,"True", "RUR").salary
         '100 - 200 (Рубли) (С вычетом налогов)'
         """
-        if(salary_from == ''):
+        if(salary_from == '' and salary_to == ''):
             salary_from = -1
-        if(salary_to == ''):
-            salary_to = -1
+        elif(salary_to == ''):
+            salary_to = salary_from
+        elif(salary_from == ''):
+            salary_from = salary_to
         if(salary_currency == ''):
             salary_currency = 'not'
         self.salary_from = [salary_from]
         self.salary_to = [salary_to]
         self.salary_gross = [salary_gross]
         self.salary_currency = [salary_currency]
+        self.salary = "" if (salary_from == -1 or salary_currency == "not") else (float((salary_from).replace(',', '.')) + float((salary_to).replace(',', '.'))) / 2
 
 
 class DataSet:
@@ -303,57 +306,72 @@ class DataSet:
         df = pd.DataFrame(data=d)
         df.to_csv('out.csv', index=False)
 
-    def makeDict(self, vacancies_objects):
+    def formatDateTime(self, time):
+        value = [time.split("T")[0].split("-")[0], time.split("T")[0].split("-")[1], time.split("T")[0].split("-")[2]]
+        day = datetime(int(value[0]), int(value[1]), int(value[2]), 0, 0, 0)
+        return day.strftime('%Y-%m')
+
+    def make_new_CSV(self, vacancies_objects):
+        currency = pd.read_csv('out.csv')
+        name = []
+        salary = []
+        area = []
+        publish = []
+        ratio = 0
+                
+        for vacancyByYear in vacancies_objects:
+            for vacancy in vacancyByYear:
+                if vacancy.salary.salary_currency[0] == "RUR" or vacancy.salary.salary_currency[0] == "not":
+                    ratio = 1
+                elif vacancy.salary.salary_currency[0] in currency.columns:
+                    ratio = float(currency.loc[((currency['date'])) == self.formatDateTime(vacancy.published_at[0])][vacancy.salary.salary_currency[0]])
+                else:
+                    ratio = 0
+                name.append(vacancy.name[0])
+                salary.append(vacancy.salary.salary * ratio if ratio != 0 else '')
+                area.append(vacancy.area_name[0])
+                publish.append(vacancy.published_at[0])
+        d = {'name': name, 'salary': salary, 'area_name': area, 'published_at': publish}
+        df = pd.DataFrame(data=d)
+        df.to_csv('new.csv', index=False)
+        
+
+    def makeAndPrintDict(self, vacancies_objects):
         """Заполняет класс Report и выводит статистические данные"""
         dict_currency = {}
-        for vacancy in vacancies_objects:
-            if (vacancy.salary.salary_currency[0] in dict_currency):
-                dict_currency[vacancy.salary.salary_currency[0]] += 1
-            else:
-                dict_currency[vacancy.salary.salary_currency[0]] = 1
-        return dict_currency
-
-    def print_dict(self, dicrionaries):
-        print("Количество валют:", dicrionaries)
+        for vacancyByYear in vacancies_objects:
+            for vacancy in vacancyByYear:
+                if (vacancy.salary.salary_currency[0] in dict_currency):
+                    dict_currency[vacancy.salary.salary_currency[0]] += 1
+                else:
+                    dict_currency[vacancy.salary.salary_currency[0]] = 1
+        print("Количество валют:", dict_currency)
         elem = {}
-        for item in dicrionaries.items():
-            elem[item[0]] = round(dicrionaries[item[0]] / sum(dicrionaries.values()), 4)
+        for item in dict_currency.items():
+            elem[item[0]] = round(dict_currency[item[0]] / sum(dict_currency.values()), 4)
         print("Частотность валют:", elem)
-
-
-def get_answer(result):
-    dict_currency = {}
-    for year in result:
-        for city in year:
-            if city not in dict_currency:
-                dict_currency[city] = 0
-            dict_currency[city] += year[city]
-    return dict_currency
-
-def get_futures(profession, allFiles):
-    conclusion = DataSet(profession)
-    vacancies_list = conclusion.сsv_reader(allFiles)
-    return conclusion.makeDict(vacancies_list)
 
 def pool_handler(allFiles, profession):
     conclusion = DataSet(profession)
     result = []
     with concurrent.futures.ProcessPoolExecutor(max_workers=11) as executor:
-        futures = {executor.submit(get_futures, profession, file): file for file in allFiles}
+        futures = {executor.submit(conclusion.сsv_reader, file): file for file in allFiles}
         for fut in concurrent.futures.as_completed(futures):
             result.append(fut.result())
-    conclusion.print_dict(get_answer(result))
+    return result
 
 if(__name__ == "__main__"):
     #profession = input("Введите название профессии: ")
     profession = "Программист"
-    data = DataSet()
+    conclusion = DataSet(profession)
     #path = input("Введите название папки: ") + '/'
     path = "allCSV/"
     allFiles = []
     for filename in glob.glob(os.path.join(path, '*.csv')):
         allFiles.append(filename)
     clock = time.time()
-    pool_handler(allFiles, profession)
-    data.currency_to_CSV()
+    multi = pool_handler(allFiles, profession)
+    conclusion.makeAndPrintDict(multi)
+    conclusion.make_new_CSV(multi)
+    conclusion.currency_to_CSV()
     print("\nProcess has finished:", time.time() - clock)
