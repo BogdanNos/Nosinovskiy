@@ -192,6 +192,7 @@ class DataSet:
                 elif (len(row) >= len(names)):
                     self.csv_filer(row, names)
         return self.vacancies_objects
+        
 
     def csv_filer(self, item, list_naming):
         """
