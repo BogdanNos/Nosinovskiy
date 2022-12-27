@@ -124,14 +124,19 @@ class Report:
         vacancyCity(dictionary): Содержит количество вакансий для каждого города
     """
 
-    def __init__(self, profession):
+    def __init__(self, profession, area):
         """Инизиализирует объект Report"""
 
         self.salaryYear = {}
         self.numberYear = {}
         self.salaryProfessionalYear = {}
         self.numberProfessionalYear = {}
+        self.salaryCity = {}
+        self.vacancyCity = {}
+        self.salaryYearCity = {}
+        self.numberYearCity = {}
         self.profession = profession
+        self.area = area
 
     def generate_image(self):
         """Создает картику со статистикой csv файла при помощи библиотеки matplotlib"""
@@ -159,10 +164,24 @@ class Report:
         ax.legend()
         plt.grid(axis='y')
 
+        ax = plt.subplot(223)
+        ax.set_title('Уровень зарплат по городам')
+        y_pos = np.arange(len(list(self.salaryCity)))
+        performance = self.salaryCity.values()
+        ax.barh(y_pos, performance, align='center')
+        ax.set_yticks(y_pos, labels=list(self.salaryCity))
+        ax.invert_yaxis()
+        plt.grid(axis='x')
+
+        colors = ["g", "r", "#FF00BB", "0.5", "y", "b", "#05FFBB", "#70F750", "#569712", "#589656", "#BBBB75"]
+        ax = plt.subplot(224)
+        ax.set_title('Доля вакансий по городам')
+        plt.rcParams.update({'font.size': 6})
+        ax.pie(list(self.vacancyCity.values()) + [1 - sum(self.vacancyCity.values())], colors=colors,
+               labels=list(self.vacancyCity) + ["Другие"])
 
         plt.subplots_adjust(wspace=0.5, hspace=0.5)
         plt.savefig('graph.png', dpi=200, bbox_inches='tight')
-
    
     def generate_pdf(self):
         """Создает PDF файл со статистикой csv файла при помощи библиотеки pdfkit"""
@@ -198,9 +217,30 @@ class Report:
             table += ("<td>" + str(list(self.salaryProfessionalYear.values())[i]) + "</td>")
             table += ("<td>" + str(list(self.numberProfessionalYear.values())[i]) + "</td>")
             table += "</tr>"
+        table += "</tr></table><h1>Статистика по городам</h1>"
+        table += "<table class='table1'><tr><th>Город</th><th>Уровень зарплат</th>"
+        for i in range(len(list(self.salaryCity))):
+            table += "<tr>"
+            table += ("<td>" + str(list(self.salaryCity)[i]) + "</td>")
+            table += ("<td>" + str(list(self.salaryCity.values())[i]) + "</td>")
+            table += "</tr>"
+        table += "</tr></table>"
+        table += "<table class='table2'><tr><th>Город</th><th>Уровень зарплат</th>"
+        for i in range(len(list(self.vacancyCity))):
+            table += "<tr>"
+            table += ("<td>" + str(list(self.vacancyCity)[i]) + "</td>")
+            table += ("<td>" + str(round(list(self.vacancyCity.values())[i] * 100, 2)) + "%" + "</td>")
+            table += "</tr>"
+        table += "</tr></table><h1>Статистика для " + self.profession + "а из " + self.area + "</h1>"
+        table += "<table class='table'><tr><th>Год</th><th>Средняя зарплата</th><th>Количество вакансий</th>"
+        for i in range(len(list(self.salaryYearCity))):
+            table += "<tr>"
+            table += ("<td>" + str(list(self.salaryYearCity)[i]) + "</td>")
+            table += ("<td>" + str(list(self.salaryYearCity.values())[i]) + "</td>")
+            table += ("<td>" + str(list(self.numberYearCity.values())[i]) + "</td>")
+            table += "</tr>"
         table += "</tr></table>"
         return table
-
 
 
 class DataSet:
@@ -212,11 +252,12 @@ class DataSet:
         vacancies_objects(list): Массив, содержащий все данные по каждой из вакансий
     """
 
-    def __init__(self, profession="None", file="None"):
+    def __init__(self, profession="None", area = 'None', file="None"):
         """Инизиализирует объект DataSet"""
 
         self.profession = profession
-        self.report = Report(self.profession)
+        self.area = area
+        self.report = Report(self.profession, self.area)
         self.file_name = file
         self.vacancies_objects = []
 
@@ -315,23 +356,8 @@ class DataSet:
             for data in dictionary:
                 write_chunk(data, dictionary[data])
 
-    def formatDateTime(self, time):
-        """
-        Преобразует строку даты публикации вакансии
 
-        Args:
-            time(str): строка, которую нужно преобразовать
-
-        Returns:
-            str: строка времени в нужном формате
-
-        """
-        value = [time.split("T")[0].split("-")[0], time.split("T")[0].split("-")[1], time.split("T")[0].split("-")[2]]
-        day = datetime(int(value[0]), int(value[1]), int(value[2]), 0, 0, 0)
-        return day.strftime('%Y-%m')
-
-
-    def makeAndPrintDict(self, vacancies_objects):
+    def makeDict(self, vacancies_objects):
         """Заполняет класс Report и выводит статистические данные
 
         Args:
@@ -344,7 +370,9 @@ class DataSet:
             "salaryProfessionalYear": {},
             "NumberProfessionalYear": {},
             "salaryCity": {},
-            "vacancyCity": {}
+            "vacancyCity": {},
+            'salaryYearCity': {},
+            'numberYearCity': {}
         }
         for vacancyByYear in vacancies_objects:
             for vacancy in vacancyByYear:
@@ -360,6 +388,16 @@ class DataSet:
                     else:
                         dicrionaries["salaryYear"][int(vacancy.published_at[0][0:4])] = [float(vacancy.salary[0])]
                         dicrionaries["salaryProfessionalYear"][int(vacancy.published_at[0][0:4])] = [0]
+                    
+                    if (vacancy.area_name[0] in dicrionaries["salaryCity"]):
+                        dicrionaries["salaryCity"][vacancy.area_name[0]] += [float(vacancy.salary[0])]
+                    else:
+                        dicrionaries["salaryCity"][vacancy.area_name[0]] = [float(vacancy.salary[0])]
+
+                    if (vacancy.area_name[0] in dicrionaries["vacancyCity"]):
+                        dicrionaries["vacancyCity"][vacancy.area_name[0]] += 1
+                    else:
+                        dicrionaries["vacancyCity"][vacancy.area_name[0]] = 1
 
                     if (self.profession in vacancy.name[0]):
                         if (int(vacancy.published_at[0][0:4]) in dicrionaries["NumberProfessionalYear"]):
@@ -372,6 +410,26 @@ class DataSet:
                         else:
                             dicrionaries["salaryProfessionalYear"][int(vacancy.published_at[0][0:4])] = [float(vacancy.salary[0])]
 
+                        if(self.area == vacancy.area_name[0]):
+                            if (int(vacancy.published_at[0][0:4]) in dicrionaries["numberYearCity"]):
+                                dicrionaries["numberYearCity"][int(vacancy.published_at[0][0:4])] += 1
+                            else:
+                                dicrionaries["numberYearCity"][int(vacancy.published_at[0][0:4])] = 1
+
+                            if (int(vacancy.published_at[0][0:4]) in dicrionaries["salaryYearCity"].keys()):
+                                dicrionaries["salaryYearCity"][int(vacancy.published_at[0][0:4])] += [float(vacancy.salary[0])]
+                            else:
+                                dicrionaries["salaryYearCity"][int(vacancy.published_at[0][0:4])] = [float(vacancy.salary[0])]
+        
+        return dicrionaries
+
+    def printDict(self, dicrionaries):
+        dicrionaries["salaryYear"] = dict(sorted(dicrionaries["salaryYear"].items(), key=lambda x: x[0]))
+        dicrionaries["NumberYear"] = dict(sorted(dicrionaries["NumberYear"].items(), key=lambda x: x[0]))
+        dicrionaries["salaryProfessionalYear"] = dict(sorted(dicrionaries["salaryProfessionalYear"].items(), key=lambda x: x[0]))
+        dicrionaries["NumberProfessionalYear"] = dict(sorted(dicrionaries["NumberProfessionalYear"].items(), key=lambda x: x[0]))
+        dicrionaries["salaryYearCity"] = dict(sorted(dicrionaries["salaryYearCity"].items(), key=lambda x: x[0]))
+        dicrionaries["numberYearCity"] = dict(sorted(dicrionaries["numberYearCity"].items(), key=lambda x: x[0]))
         elem = {}
         for item in dicrionaries["salaryYear"].items():
             elem[item[0]] = int(sum(dicrionaries["salaryYear"][item[0]]) / len(dicrionaries["salaryYear"][item[0]]))
@@ -394,7 +452,32 @@ class DataSet:
         self.report.numberProfessionalYear = dicrionaries["NumberProfessionalYear"]
         print("Динамика количества вакансий по годам для выбранной профессии:", dicrionaries["NumberProfessionalYear"])
 
-def pool_handler(allFiles, profession):
+        elem = {}
+        for item in dicrionaries["salaryCity"].items():
+            if (len(dicrionaries["salaryCity"][item[0]]) / sum(dicrionaries["NumberYear"].values()) >= 0.01):
+                elem[item[0]] = int(sum(dicrionaries["salaryCity"][item[0]]) / len(dicrionaries["salaryCity"][item[0]]))
+        elem = dict(sorted(elem.items(), key=lambda item: item[1], reverse=True)[:10])
+        self.report.salaryCity = elem
+        print("Уровень зарплат по городам (в порядке убывания):", elem)
+
+        elem = {}
+        for item in dicrionaries["vacancyCity"].items():
+            if (dicrionaries["vacancyCity"][item[0]] / sum(dicrionaries["NumberYear"].values()) >= 0.01):
+                elem[item[0]] = round(dicrionaries["vacancyCity"][item[0]] / sum(dicrionaries["NumberYear"].values()), 4)
+        elem = dict(sorted(elem.items(), key=lambda item: item[1], reverse=True)[:10])
+        self.report.vacancyCity = elem
+        print("Доля вакансий по городам (в порядке убывания):", elem)
+
+        elem = {}
+        for item in dicrionaries["salaryYearCity"].items():
+            elem[item[0]] = int(sum(dicrionaries["salaryYearCity"][item[0]]) / len(dicrionaries["salaryYearCity"][item[0]]))
+        self.report.salaryYearCity = elem
+        print("Динамика уровня зарплат по годам для выбранной профессии и региона:", elem)
+
+        self.report.numberYearCity = dicrionaries["numberYearCity"]
+        print("Динамика количества вакансий по годам для выбранной профессии и региона:", dicrionaries["numberYearCity"])
+
+def pool_handler(allFiles, profession, area):
     """Запускает все csv файлы в мультипотоке
 
     Args:
@@ -405,7 +488,7 @@ def pool_handler(allFiles, profession):
         list: массив со всеми вакансиями
     """
 
-    conclusion = DataSet(profession)
+    conclusion = DataSet(profession, area)
     result = []
     with concurrent.futures.ProcessPoolExecutor(max_workers=11) as executor:
         futures = {executor.submit(conclusion.сsv_reader, file): file for file in allFiles}
@@ -416,15 +499,16 @@ def pool_handler(allFiles, profession):
 if(__name__ == "__main__"):
     bigFile = input("Введите название файла: ")
     profession = input("Введите название профессии: ")
-    conclusion = DataSet(profession)
+    area = input("Введите название региона: ")
+    conclusion = DataSet(profession, area)
     conclusion.lets_chunk()
     path = "newCSV/"
     allFiles = []
     for filename in glob.glob(os.path.join(path, '*.csv')):
         allFiles.append(filename)
     clock = time.time()
-    multi = pool_handler(allFiles, profession)
-    conclusion.makeAndPrintDict(multi)
+    multi = pool_handler(allFiles, profession, area)
+    conclusion.printDict(conclusion.makeDict(multi))
     conclusion.report.generate_image()
     conclusion.report.generate_pdf()
     print("\nProcess has finished:", time.time() - clock)
