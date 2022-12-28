@@ -15,6 +15,7 @@ from datetime import datetime
 import os, glob
 import concurrent.futures
 from multiprocessing import Pool
+import sqlite3
 
 translateToRus = {
     "name": "Название",
@@ -258,7 +259,7 @@ class DataSet:
 
         return ' '.join(re.sub(r"<[^>]+>", '', strValue).split())
 
-    def currency_to_CSV(self):
+    def currency_to_SQL(self):
         """
         Берет данные с ЦБ.РФ и записывает их в CSV файл с переодичностью в один месяц для волют встречающихся более 5000 раз
         """
@@ -294,7 +295,8 @@ class DataSet:
         d = {'date': dates, 'USD': currency["R01235"], 'EUR': currency["R01239"], 'UAH': currency["R01720"],
              'KZT': currency["R01335"], 'BYR': currency["R01090"]}
         df = pd.DataFrame(data=d)
-        df.to_csv('out.csv', index=False)
+        conn = sqlite3.connect('database.sqlite')
+        df.to_sql('good',con=conn, if_exists='replace', index=False)
 
     def formatDateTime(self, time):
         """
@@ -395,5 +397,5 @@ if(__name__ == "__main__"):
     multi = pool_handler(allFiles, profession)
     conclusion.makeAndPrintDict(multi)
     conclusion.make_new_CSV(multi)
-    conclusion.currency_to_CSV()
+    conclusion.currency_to_SQL()
     print("\nProcess has finished:", time.time() - clock)
