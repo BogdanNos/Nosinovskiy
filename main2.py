@@ -313,7 +313,7 @@ class DataSet:
         day = datetime(int(value[0]), int(value[1]), int(value[2]), 0, 0, 0)
         return day.strftime('%Y-%m')
 
-    def make_new_CSV(self, vacancies_objects):
+    def make_new_SQL(self, vacancies_objects):
         """
         Создает новый CSV файл с новой колонкой salary
 
@@ -321,7 +321,8 @@ class DataSet:
             vacancies_objects(list): массив со всеми вакансиями
 
         """
-        currency = pd.read_csv('out.csv')
+        connn = sqlite3.connect('database.sqlite')
+        currency = pd.read_sql("SELECT * from good", con=connn)
         name = []
         salary = []
         area = []
@@ -342,7 +343,8 @@ class DataSet:
                 publish.append(vacancy.published_at[0])
         d = {'name': name, 'salary': salary, 'area_name': area, 'published_at': publish}
         df = pd.DataFrame(data=d)
-        df.to_csv('new.csv', index=False)
+        conn = sqlite3.connect('salary.sqlite')
+        df.to_sql('better',con=conn, if_exists='replace', index=False)
         
 
     def makeAndPrintDict(self, vacancies_objects):
@@ -396,6 +398,6 @@ if(__name__ == "__main__"):
     clock = time.time()
     multi = pool_handler(allFiles, profession)
     conclusion.makeAndPrintDict(multi)
-    conclusion.make_new_CSV(multi)
     conclusion.currency_to_SQL()
+    conclusion.make_new_SQL(multi)
     print("\nProcess has finished:", time.time() - clock)
